@@ -1,0 +1,180 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+public class Main {
+    private static Bank bank = new Bank();
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> createAndShowGUI());
+    }
+
+    private static void createAndShowGUI() {
+        JFrame frame = new JFrame("Simple Banking Application");
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                bank.saveAccounts();
+                System.exit(0);
+            }
+        });
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(6, 1));
+
+        JButton createButton = new JButton("Create New Account");
+        createButton.addActionListener(new CreateAccountListener());
+        panel.add(createButton);
+
+        JButton depositButton = new JButton("Deposit Money");
+        depositButton.addActionListener(new DepositListener());
+        panel.add(depositButton);
+
+        JButton withdrawButton = new JButton("Withdraw Money");
+        withdrawButton.addActionListener(new WithdrawListener());
+        panel.add(withdrawButton);
+
+        JButton balanceButton = new JButton("Check Balance");
+        balanceButton.addActionListener(new BalanceListener());
+        panel.add(balanceButton);
+
+        JButton viewAllButton = new JButton("View All Accounts");
+        viewAllButton.addActionListener(new ViewAllListener());
+        panel.add(viewAllButton);
+
+        JButton exitButton = new JButton("Exit");
+        exitButton.addActionListener(e -> {
+            bank.saveAccounts();
+            System.exit(0);
+        });
+        panel.add(exitButton);
+
+        frame.add(panel);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
+    private static class CreateAccountListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String accountNumber = JOptionPane.showInputDialog("Enter Account Number:");
+            if (accountNumber == null || accountNumber.trim().isEmpty()) return;
+
+            if (bank.findAccount(accountNumber) != null) {
+                JOptionPane.showMessageDialog(null, "Account already exists.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String name = JOptionPane.showInputDialog("Enter Name:");
+            if (name == null || name.trim().isEmpty()) return;
+
+            String initialBalanceStr = JOptionPane.showInputDialog("Enter Initial Balance:");
+            if (initialBalanceStr == null) return;
+
+            try {
+                double initialBalance = Double.parseDouble(initialBalanceStr);
+                if (initialBalance < 0) {
+                    throw new IllegalArgumentException("Initial balance cannot be negative.");
+                }
+                BankAccount account = new BankAccount(accountNumber, name, initialBalance);
+                bank.addAccount(account);
+                JOptionPane.showMessageDialog(null, "Account created successfully.");
+            } catch (NumberFormatException | IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(null, "Invalid input: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private static class DepositListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String accountNumber = JOptionPane.showInputDialog("Enter Account Number:");
+            if (accountNumber == null) return;
+
+            BankAccount account = bank.findAccount(accountNumber);
+            if (account == null) {
+                JOptionPane.showMessageDialog(null, "Account not found.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String amountStr = JOptionPane.showInputDialog("Enter Deposit Amount:");
+            if (amountStr == null) return;
+
+            try {
+                double amount = Double.parseDouble(amountStr);
+                account.deposit(amount);
+                bank.saveAccounts();
+                JOptionPane.showMessageDialog(null, "Deposit successful. New balance: $" + account.getBalance());
+            } catch (NumberFormatException | IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(null, "Invalid input: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private static class WithdrawListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String accountNumber = JOptionPane.showInputDialog("Enter Account Number:");
+            if (accountNumber == null) return;
+
+            BankAccount account = bank.findAccount(accountNumber);
+            if (account == null) {
+                JOptionPane.showMessageDialog(null, "Account not found.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String amountStr = JOptionPane.showInputDialog("Enter Withdrawal Amount:");
+            if (amountStr == null) return;
+
+            try {
+                double amount = Double.parseDouble(amountStr);
+                account.withdraw(amount);
+                bank.saveAccounts();
+                JOptionPane.showMessageDialog(null, "Withdrawal successful. New balance: $" + account.getBalance());
+            } catch (NumberFormatException | IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(null, "Invalid input: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private static class BalanceListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String accountNumber = JOptionPane.showInputDialog("Enter Account Number:");
+            if (accountNumber == null) return;
+
+            BankAccount account = bank.findAccount(accountNumber);
+            if (account == null) {
+                JOptionPane.showMessageDialog(null, "Account not found.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            JOptionPane.showMessageDialog(null, "Balance: $" + account.getBalance());
+        }
+    }
+
+    private static class ViewAllListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            List<BankAccount> accounts = bank.getAllAccounts();
+            if (accounts.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No accounts found.");
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            for (BankAccount account : accounts) {
+                sb.append(account.toString()).append("\n");
+            }
+            JTextArea textArea = new JTextArea(sb.toString());
+            JScrollPane scrollPane = new JScrollPane(textArea);
+            textArea.setEditable(false);
+            JOptionPane.showMessageDialog(null, scrollPane, "All Accounts", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+}

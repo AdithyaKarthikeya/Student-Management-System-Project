@@ -1,0 +1,51 @@
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Bank {
+    private List<BankAccount> accounts;
+    private static final String FILE_PATH = "accounts.dat";
+
+    public Bank() {
+        accounts = new ArrayList<>();
+        loadAccounts();
+    }
+
+    public void addAccount(BankAccount account) {
+        accounts.add(account);
+        saveAccounts();
+    }
+
+    public BankAccount findAccount(String accountNumber) {
+        for (BankAccount account : accounts) {
+            if (account.getAccountNumber().equals(accountNumber)) {
+                return account;
+            }
+        }
+        return null;
+    }
+
+    public List<BankAccount> getAllAccounts() {
+        return new ArrayList<>(accounts);
+    }
+
+    public void saveAccounts() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_PATH))) {
+            oos.writeObject(accounts);
+        } catch (IOException e) {
+            System.err.println("Error saving accounts: " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void loadAccounts() {
+        File file = new File(FILE_PATH);
+        if (file.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_PATH))) {
+                accounts = (List<BankAccount>) ois.readObject();
+            } catch (IOException | ClassNotFoundException e) {
+                System.err.println("Error loading accounts: " + e.getMessage());
+            }
+        }
+    }
+}
